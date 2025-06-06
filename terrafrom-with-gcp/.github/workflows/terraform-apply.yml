@@ -1,0 +1,142 @@
+name: 'Terraform Apply'
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'environments/**'
+      - 'modules/**'
+      - '.github/workflows/terraform-*.yml'
+  workflow_dispatch:  # Allow manual triggering
+
+env:
+  TF_VERSION: '1.6.2'
+  WORKING_DIRECTORY: './environments/dev'
+
+jobs:
+  terraform-apply:
+    name: 'Terraform Apply'
+    runs-on: ubuntu-latest
+    environment: production  # Requires approval for production deployments
+    
+    defaults:
+      run:
+        shell: bash
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+
+    steps:
+    # Checkout the repository to the GitHub Actions runner
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    # Setup Terraform CLI
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: ${{ env.TF_VERSION }}
+        terraform_wrapper: false  # Disable wrapper to get raw output
+
+    # Authenticate to Google Cloud
+    - name: 'Authenticate to Google Cloud'
+      uses: 'google-github-actions/auth@v2'
+      with:
+        credentials_json: '${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}'
+
+    # Set up Cloud SDK
+    - name: 'Set up Cloud SDK'
+      uses: 'google-github-actions/setup-gcloud@v2'
+
+    # Verify authentication
+    - name: 'Verify authentication'
+      run: |
+        gcloud auth list
+        gcloud config list project
+
+    # Initialize Terraform
+    - name: Terraform Init
+      run: terraform init
+
+    # Validate terraform files
+    - name: Terraform Validate
+      run: terraform validate
+
+    # Format check
+    - name: Terraform Format Check
+      run: terraform fmt -check -recursive
+
+    # Plan before apply
+    - name: Terraform Plan
+      id: plan
+      run: |
+        terraform plan \
+          -var="owner_email=${{ secrets.OWNER_EMAIL }}" \
+          -var="db_password=${{ secrets.DB_PASSWORD }}" \
+          -out=tfplan \
+          -no-color
+      env:
+        TF_IN_AUTOMATION: true
+
+    # Apply the configuration
+    - name: Terraform Apply
+      id: apply
+      run: terraform apply -auto-approve tfplan
+      env:
+        TF_IN_AUTOMATION: true
+
+    # Get outputs
+    - name: Terraform Output
+      id: output
+      run: |
+        echo "deployment_summary<<EOF" >> $GITHUB_OUTPUT
+        terraform output -json deployment_summary >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+
+    # Post deployment summary as comment
+    - name: Post Deployment Summary
+      uses: actions/github-script@v7
+      if: always()
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          const deploymentSummary = `
+          ## 🚀 Deployment Summary
+          
+          **Status**: ${{ steps.apply.outcome == 'success' && '✅ Success' || '❌ Failed' }}
+          **Environment**: dev
+          **Commit**: ${{ github.sha }}
+          **Actor**: @${{ github.actor }}
+          
+          ### 📊 Deployed Resources
+          
+          ${{ steps.output.outputs.deployment_summary && '```json\n' + steps.output.outputs.deployment_summary + '\n```' || 'Output not available' }}
+          
+          ### 🔗 Quick Links
+          - [Workflow Run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          - [Commit](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})
+          `;
+          
+          // Create issue comment if this is part of a PR
+          if (context.payload.head_commit) {
+            github.rest.repos.createCommitComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha,
+              body: deploymentSummary
+            });
+          }
+
+    # Slack notification (optional)
+    - name: Slack Notification
+      if: always()
+      uses: 8398a7/action-slack@v3
+      with:
+        status: ${{ job.status }}
+        channel: '#deployments'
+        text: |
+          Terraform deployment ${{ job.status }}!
+          Environment: dev
+          Commit: ${{ github.sha }}
+          Actor: ${{ github.actor }}
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

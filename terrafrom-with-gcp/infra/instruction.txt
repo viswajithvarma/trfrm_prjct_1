@@ -1,0 +1,13 @@
+Need to create a google account 
+
+inorder to maintain resources effeciently we can create projects to deploy our infrastruture 
+
+You need to make sure few API's are enabled like ( cloud Dns, compute engine, IAM API's)
+
+go to API's and services to enable the required API's for our use case
+
+create a service account to aunthenticate terraform to google cloud, it needs a 
+
+service account can be created from Iam and admin
+
+once service account is created go to keys and create an API key in JSON format
