@@ -66,7 +66,7 @@ module "functions" {
   
   function_name           = "tst-tf-function-${var.environment}"
   description            = "Terraform Deployed Cloud Function for ${var.environment}"
-  entry_point            = "Hello_world"
+  entry_point            = "hello_world"
   source_bucket          = module.storage.bucket_name
   source_object          = "function-code.zip"
   project_id             = var.project_id

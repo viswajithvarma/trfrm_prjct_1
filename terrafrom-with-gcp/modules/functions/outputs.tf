@@ -10,7 +10,7 @@ output "function_url" {
 
 output "function_self_link" {
   description = "Self link of the Cloud Function"
-  value       = google_cloudfunctions_function.function.self_link
+  value       = google_cloudfunctions_function.function
 }
 
 output "function_status" {
@@ -20,5 +20,5 @@ output "function_status" {
 
 output "function_source_archive_url" {
   description = "Source archive URL of the Cloud Function"
-  value       = google_cloudfunctions_function.function.source_archive_url
+  value       = google_cloudfunctions_function.function
 }

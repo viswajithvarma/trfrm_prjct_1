@@ -114,7 +114,7 @@ resource "google_cloudfunctions_function" "example" {
   name                  = "tst-tf-function"
   description           = "Terraform Deployed Cloud Function"
   runtime               = "python39"
-  entry_point           = "Hello_world"
+  entry_point           = "hello_world"
   trigger_http          = true
   source_archive_bucket = google_storage_bucket.website.name
   source_archive_object = google_storage_bucket_object.zip.name
