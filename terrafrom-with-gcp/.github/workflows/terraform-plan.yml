@@ -1,7 +1,7 @@
 # testing to see how it works
 name: 'Terraform Plan'
 
-on:
+on: [push]
   pull_request:
     branches:
       - main
