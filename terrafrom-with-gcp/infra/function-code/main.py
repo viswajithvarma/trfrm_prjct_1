@@ -1,3 +1,3 @@
 # main.py
-def Hello_world(request):
+def hello_world(request):
     return "Hello from Terraform!"

@@ -5,7 +5,7 @@ output "cluster_name" {
 
 output "cluster_self_link" {
   description = "Self link of the Dataproc cluster"
-  value       = google_dataproc_cluster.cluster.self_link
+  value       = google_dataproc_cluster.cluster
 }
 
 output "master_instance_names" {

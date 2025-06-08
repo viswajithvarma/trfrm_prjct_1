@@ -23,7 +23,7 @@ variable "owner_email" {
 variable "reader_domain" {
   description = "Domain with reader access"
   type        = string
-  default     = "example.com"
+  default     = "varma.jittu@gmail.com"
 }
 
 variable "default_table_expiration_ms" {
